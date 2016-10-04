@@ -1,5 +1,19 @@
 enchant();
 
+var map = [
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        ];
+
 window.onload = function(){
 	var game = new Core(528, 528);	// game display size
 	game.fps = 30;					// frame per second
@@ -14,6 +28,7 @@ window.onload = function(){
 class GameFlow{
     constructor(game){
         this.game = game;
+        this.bomb = false;
     }
 
     start(){
@@ -27,26 +42,24 @@ class GameFlow{
         this.game.pushScene(playScene);
         playScene.addEventListener("enterframe", () => {
             you.move(this.game.input.up, this.game.input.right, this.game.input.down, this.game.input.left);
-            if(this.game.input.space){
-                console.log("put a bomb");
-            }
+
         });
     }
 
     createBgSprite(){
-        var map = [
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        ];
+        // var map = [
+        //     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        //     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        //     [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+        //     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        //     [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+        //     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        //     [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+        //     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        //     [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+        //     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        //     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        // ];
         var sprite = new BackGround(map, [48, 48]);
         sprite.image = this.game.assets["images/map.png"];
         sprite.create();
@@ -65,6 +78,11 @@ var Player = Class.create(Sprite, {
         Sprite.call(this, x, y);
         this.isMoving = false;
         this.current = [null, null];
+        this.bomb = false;
+        this.xCell = 1;
+        this.yCell = 1;
+        this.xColDet = 1;
+        this.yColDet = 1;
     },
 
     move(up, right, down, left){
@@ -87,6 +105,20 @@ var Player = Class.create(Sprite, {
             this.current = vec;
         }
         //console.log(vec, this.current);
+        this.xCell = this.x / this.width;
+        this.yCell = this.y / this.height;
+        
+        if(this.x % this.width === 0 && this.y % this.height === 0){
+            this.xColDet = this.xCell;
+            this.yColDet = this.yCell;
+        }
+        //console.log(this.xColDet + ", " + this.yColDet);
+
+        if(map[this.xColDet + this.current[0]][this.yColDet + this.current[1]] === 1){
+            this.current = [null, null];    //If cell of "map" you're going to has "1", turn your deplacement 0.
+        }
+
+        //console.log(this.xCell + ", " + this.yCell);
 
         this.x += this.current[0];
         this.y += this.current[1];
@@ -95,7 +127,7 @@ var Player = Class.create(Sprite, {
             this.current = [null, null];
         }
         //console.log(vec);
-        console.log(this.current);
+        //console.log(this.current);
     }
 });
 
