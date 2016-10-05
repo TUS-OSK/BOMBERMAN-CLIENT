@@ -17,9 +17,10 @@ var map = [
 window.onload = function(){
 	var game = new Core(528, 528);	// game display size
 	game.fps = 30;					// frame per second
-	game.preload("images/player.png", "images/map.png");
+	game.preload("images/player.png", "images/map.png", "images/bomb.png");
     var gameFlow = new GameFlow(game);
 	game.onload = function(){
+        game.keybind(" ".charCodeAt(0), "space");
         gameFlow.start();
     }
 	game.start();
@@ -28,7 +29,6 @@ window.onload = function(){
 class GameFlow{
     constructor(game){
         this.game = game;
-        this.bomb = false;
     }
 
     start(){
@@ -42,7 +42,7 @@ class GameFlow{
         this.game.pushScene(playScene);
         playScene.addEventListener("enterframe", () => {
             you.move(this.game.input.up, this.game.input.right, this.game.input.down, this.game.input.left);
-
+            this.createBombSprite(you.putBomb(this.game.input.space));
         });
     }
 
@@ -71,6 +71,18 @@ class GameFlow{
         sprite.image = this.game.assets["images/player.png"];
         return sprite;
     }
+
+    createBombSprite(coordinate){
+        if(coordinate[0] !== null && coordinate[1] !== null){
+            var sprite = new Sprite(48, 48);
+            sprite.image = this.game.assets["images/bomb.png"];
+            sprite.flame = 0;
+            sprite.x = coordinate[0];
+            sprite.y = coordinate[1];
+            console.log("put");
+            return sprite;
+        }
+    }
 }
 
 var Player = Class.create(Sprite, {
@@ -78,11 +90,15 @@ var Player = Class.create(Sprite, {
         Sprite.call(this, x, y);
         this.isMoving = false;
         this.current = [null, null];
-        this.bomb = false;
         this.xCell = 1;
         this.yCell = 1;
         this.xColDet = 1;
         this.yColDet = 1;
+        this.bomb = false;
+        this.xBomb = 1;
+        this.yBomb = 1;
+        this.prevBombCoordinate = [null, null];
+        this.bombPutThureshold = 3/4;
     },
 
     move(up, right, down, left){
@@ -128,6 +144,32 @@ var Player = Class.create(Sprite, {
         }
         //console.log(vec);
         //console.log(this.current);
+    },
+
+    putBomb(keyDown){
+        if(keyDown){
+            if(this.x % this.width === 0 && this.y % this.height === 0){
+                return [this.x / this.width, this.y / this.height];
+            }else if((this.x % this.width) <= (this.width * this.bombPutThureshold) && (this.y % this.height) <= (this.height * this.bombPutThureshold)){
+                return [this.xColDet, this.yColDet];
+            }else if((this.x % this.width) > (this.width * this.bombPutThureshold) || (this.y % this.height) > (this.height * this.bombPutThureshold)){
+                return [this.xColDet + this.current[0], this.yColDet + this.current[1]];
+            }
+
+            /*
+            this.prevBombCoordinate = [this.xBomb, this.yBomb];
+            this.xBomb = this.xColDet;
+            this.yBomb = this.yColDet;
+            // console.log(this.prevBombCoordinate, [this.xBomb, this.yBomb]);
+
+            return [this.xBomb, this.yBomb];
+            // if(this.prevBombCoordinate[0] !== this.xBomb || this.prevBombCoordinate[1] !== this.yBomb){
+            //     return [this.xBomb, this.yBomb];
+            // }
+            */
+        }else{
+            return [null, null];
+        }
     }
 });
 
