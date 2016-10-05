@@ -42,7 +42,7 @@ class GameFlow{
         this.game.pushScene(playScene);
         playScene.addEventListener("enterframe", () => {
             you.move(this.game.input.up, this.game.input.right, this.game.input.down, this.game.input.left);
-            this.createBombSprite(you.putBomb(this.game.input.space));
+            this.createBombSprite(playScene, you.putBomb(this.game.input.space));
         });
     }
 
@@ -72,15 +72,16 @@ class GameFlow{
         return sprite;
     }
 
-    createBombSprite(coordinate){
+    createBombSprite(scene, coordinate){
         if(coordinate[0] !== null && coordinate[1] !== null){
             var sprite = new Sprite(48, 48);
             sprite.image = this.game.assets["images/bomb.png"];
             sprite.flame = 0;
             sprite.x = coordinate[0];
             sprite.y = coordinate[1];
-            console.log("put");
-            return sprite;
+            scene.addChild(sprite);
+            // console.log("put");
+            // return sprite;
         }
     }
 }
@@ -149,11 +150,11 @@ var Player = Class.create(Sprite, {
     putBomb(keyDown){
         if(keyDown){
             if(this.x % this.width === 0 && this.y % this.height === 0){
-                return [this.x / this.width, this.y / this.height];
+                return [this.x, this.y];
             }else if((this.x % this.width) <= (this.width * this.bombPutThureshold) && (this.y % this.height) <= (this.height * this.bombPutThureshold)){
-                return [this.xColDet, this.yColDet];
+                return [this.xColDet * this.width, this.yColDet * this.height];
             }else if((this.x % this.width) > (this.width * this.bombPutThureshold) || (this.y % this.height) > (this.height * this.bombPutThureshold)){
-                return [this.xColDet + this.current[0], this.yColDet + this.current[1]];
+                return [(this.xColDet + this.current[0]) * this.width, (this.yColDet + this.current[1]) * this.height];
             }
 
             /*
