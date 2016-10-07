@@ -1,19 +1,5 @@
 enchant();
 
-var map = [
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        ];
-
 window.onload = function(){
 	var game = new Core(528, 528);	// game display size
 	game.fps = 30;					// frame per second
@@ -29,38 +15,74 @@ window.onload = function(){
 class GameFlow{
     constructor(game){
         this.game = game;
+        this.moveVector = [null, null];
+        this.xCell = 1;
+        this.yCell = 1;
     }
 
     start(){
         // this.game.pushScene(this.createPlayScene());
         var playScene = new Scene();
-        playScene.addChild(this.createBgSprite());
+        var bg = this.createBgSprite();
+        playScene.addChild(bg);
         var you = this.createPlaySprite();
         you.x = 48;
         you.y = 48;
         playScene.addChild(you);
         this.game.pushScene(playScene);
         playScene.addEventListener("enterframe", () => {
-            you.move(this.game.input.up, this.game.input.right, this.game.input.down, this.game.input.left);
+            if(you.x % you.width === 0 && you.y % you.height === 0){
+                if(this.game.input.up){
+                    this.moveVector = [0, -1];
+                }else if(this.game.input.right){
+                    this.moveVector = [+1, 0];
+                }else if(this.game.input.down){
+                    this.moveVector = [0, +1];
+                }else if(this.game.input.left){
+                    this.moveVector = [-1, 0];
+                }else{
+                    this.moveVector = [0, 0];
+                }
+                this.xCell = you.x;
+                this.yCell = you.y;
+            }
+            if(bg.collisionDetection(this.xCell / you.width, this.yCell / you.height, this.moveVector)){
+                you.move(this.moveVector);
+            }
             this.createBombSprite(playScene, you.putBomb(this.game.input.space));
         });
     }
 
     createBgSprite(){
-        // var map = [
-        //     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        //     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        //     [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-        //     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        //     [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-        //     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        //     [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-        //     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        //     [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-        //     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        //     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        // ];
-        var sprite = new BackGround(map, [48, 48]);
+        var map = [
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        ];
+
+        var colMap = [
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        ];
+
+        var sprite = new BackGround(map, colMap, [48, 48]);
         sprite.image = this.game.assets["images/map.png"];
         sprite.create();
         return sprite;
@@ -93,8 +115,6 @@ var Player = Class.create(Sprite, {
         this.current = [null, null];
         this.xCell = 1;
         this.yCell = 1;
-        this.xColDet = 1;
-        this.yColDet = 1;
         this.bomb = false;
         this.xBomb = 1;
         this.yBomb = 1;
@@ -102,46 +122,18 @@ var Player = Class.create(Sprite, {
         this.bombPutThureshold = 3/4;
     },
 
-    move(up, right, down, left){
-        //console.log(up, right, down, left);
-        if(up){
-            this._moveTo([0, -1]);
-        }else if(right){
-            this._moveTo([+1, 0]);
-        }else if(down){
-            this._moveTo([0, +1]);
-        }else if(left){
-            this._moveTo([-1, 0]);
-        }else{
-            this._moveTo([0, 0]);
-        }
-    },
-
-    _moveTo(vec){
+    move(vec){
         if((vec[0] !== 0 || vec[1] !== 0) && ((this.current[0] === null && this.current[1] === null) || (vec[0] === -1 * this.current[0] || vec[1] === -1 * this.current[1]))){
             this.current = vec;
         }
-        //console.log(vec, this.current);
-        this.xCell = this.x / this.width;
-        this.yCell = this.y / this.height;
-        
-        if(this.x % this.width === 0 && this.y % this.height === 0){
-            this.xColDet = this.xCell;
-            this.yColDet = this.yCell;
-        }
-        //console.log(this.xColDet + ", " + this.yColDet);
-
-        if(map[this.xColDet + this.current[0]][this.yColDet + this.current[1]] === 1){
-            this.current = [null, null];    //If cell of "map" you're going to has "1", turn your deplacement 0.
-        }
-
-        //console.log(this.xCell + ", " + this.yCell);
 
         this.x += this.current[0];
         this.y += this.current[1];
 
         if(this.x % this.width === 0 && this.y % this.height === 0){
             this.current = [null, null];
+            this.xCell = this.x / this.width;
+            this.yCell = this.y / this.height;
         }
         //console.log(vec);
         //console.log(this.current);
@@ -152,15 +144,15 @@ var Player = Class.create(Sprite, {
             if(this.x % this.width === 0 && this.y % this.height === 0){
                 return [this.x, this.y];
             }else if((this.x % this.width) <= (this.width * this.bombPutThureshold) && (this.y % this.height) <= (this.height * this.bombPutThureshold)){
-                return [this.xColDet * this.width, this.yColDet * this.height];
+                return [this.xCell * this.width, this.yCell * this.height];
             }else if((this.x % this.width) > (this.width * this.bombPutThureshold) || (this.y % this.height) > (this.height * this.bombPutThureshold)){
-                return [(this.xColDet + this.current[0]) * this.width, (this.yColDet + this.current[1]) * this.height];
+                return [(this.xCell + this.current[0]) * this.width, (this.yCell + this.current[1]) * this.height];
             }
 
             /*
             this.prevBombCoordinate = [this.xBomb, this.yBomb];
-            this.xBomb = this.xColDet;
-            this.yBomb = this.yColDet;
+            this.xBomb = this.xCell;
+            this.yBomb = this.yCell;
             // console.log(this.prevBombCoordinate, [this.xBomb, this.yBomb]);
 
             return [this.xBomb, this.yBomb];
@@ -175,9 +167,10 @@ var Player = Class.create(Sprite, {
 });
 
 var BackGround = Class.create(Group, {
-    initialize(map, size){
+    initialize(map, colMap, size){
         Group.call(this);
         this.map = map;
+        this.colMap = colMap;
         this.size = size;
         this.image = null;
     },
@@ -194,5 +187,9 @@ var BackGround = Class.create(Group, {
                 this.addChild(tile);
             });
         });
+    },
+
+    collisionDetection(x, y, vec){
+        return this.colMap[x + vec[0]][y + vec[1]] === 0;
     }
 });
