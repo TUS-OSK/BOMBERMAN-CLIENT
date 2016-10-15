@@ -1,72 +1,27 @@
 enchant();
 
+const SIZE = [48, 48];
+const MATRIX = [11, 11];
+
 window.onload = function(){
-	var game = new Core(528, 528);	// game display size
-	game.fps = 60;					// frame per second
-	game.preload("images/player.png", "images/map.png", "images/bomb.png");
+    var game = new Core(SIZE[0] * MATRIX[0], SIZE[1] * MATRIX[1]);  // game display size
+    game.fps = 60;                  // frame per second
+    game.preload("images/player.png", "images/map.png", "images/bomb.png");
     var gameFlow = new GameFlow(game);
-	game.onload = function(){
+    game.onload = function(){
         game.keybind(" ".charCodeAt(0), "space");
         gameFlow.start();
     }
-	game.start();
+    game.start();
 };
 
 class GameFlow{
     constructor(game){
         this.game = game;
-        this.moveVector = [null, null];
-        this.xCell = 1;
-        this.yCell = 1;
     }
 
     start(){
-        // this.game.pushScene(this.createPlayScene());
         var playScene = new Scene();
-        var bg = this.createBgSprite();
-        playScene.addChild(bg);
-        var you = this.createPlayerSprite();
-        you.x = 48;
-        you.y = 48;
-        playScene.addChild(you);
-        this.game.pushScene(playScene);
-        var bombs = [];
-        playScene.addEventListener("enterframe", () => {
-            if(you.x % you.width === 0 && you.y % you.height === 0){
-                if(this.game.input.up){
-                    this.moveVector = [0, -1];
-                }else if(this.game.input.right){
-                    this.moveVector = [+1, 0];
-                }else if(this.game.input.down){
-                    this.moveVector = [0, +1];
-                }else if(this.game.input.left){
-                    this.moveVector = [-1, 0];
-                }else{
-                    this.moveVector = [0, 0];
-                }
-                this.xCell = you.x;
-                this.yCell = you.y;
-            }
-            if(bg.collisionDetection(this.xCell / you.width, this.yCell / you.height, this.moveVector)){
-                you.move(this.moveVector);
-            }
-            if (this.game.input.space) {
-                var bomb = this.createBombSprite(you.putBomb());
-                playScene.addChild(bomb);
-                bomb.startCount(() => {
-                    playScene.removeChild(bomb);
-                    var index = bombs.indexOf(bomb);
-                    bombs.splice(index, 1);
-                })
-                bombs.push(bomb);
-            }
-            bombs.forEach((v) => {
-                v.checkCount();
-            })
-        });
-    }
-
-    createBgSprite(){
         var map = [
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
@@ -80,184 +35,159 @@ class GameFlow{
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
         ];
-
-        var colMap = [
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        ];
-
-        var sprite = new BackGround(map, colMap, [48, 48]);
-        sprite.image = this.game.assets["images/map.png"];
-        sprite.create();
-        return sprite;
-    }
-
-    createPlayerSprite(){
-        var sprite = new Player(48, 48);
-        sprite.image = this.game.assets["images/player.png"];
-        return sprite;
-    }
-
-    createBombSprite(coordinate){
-        var sprite = new Bomb(coordinate, 48, 3*1000);
-        // if(coordinate[0] !== null && coordinate[1] !== null){
-            // var sprite = new Sprite(48, 48);
-            // sprite.image = this.game.assets["images/bomb.png"];
-            // sprite.flame = 0;
-            // sprite.x = coordinate[0];
-            // sprite.y = coordinate[1];
-            // console.log("put");
-        return sprite;
-        // }
-    }
-}
-
-class CollisionDetection{
-    constructor(size){      // size: Number of Cell -> Array[width, height]
-        this.colMap = [];
-        for(var i = 1; i <= size[0]; i++){
-            this.colMap[i] = [];
-            for(var j = 1; j <= size[1]; j++){
-                this.colMap[i].push(0);
-            }
-        }
-    }
-
-    update(){
-
-    }
-
-    check(){
-
-    }
-}
-
-var a = new CollisionDetection([5, 5]);
-console.log(a.colMap);
-
-var Player = Class.create(Sprite, {
-    initialize(x, y){
-        Sprite.call(this, x, y);
-        this.isMoving = false;
-        this.current = [null, null];
-        this.xCell = 1;
-        this.yCell = 1;
-        this.bomb = false;
-        this.xBomb = 1;
-        this.yBomb = 1;
-        this.prevBombCoordinate = [null, null];
-        this.bombPutThureshold = 3/4;
-    },
-
-    move(vec){
-        if((vec[0] !== 0 || vec[1] !== 0) && ((this.current[0] === null && this.current[1] === null) || (vec[0] === -1 * this.current[0] || vec[1] === -1 * this.current[1]))){
-            this.current = vec;
-        }
-
-        this.x += this.current[0];
-        this.y += this.current[1];
-
-        if(this.x % this.width === 0 && this.y % this.height === 0){
-            this.current = [null, null];
-            this.xCell = this.x / this.width;
-            this.yCell = this.y / this.height;
-        }
-        //console.log(vec);
-        //console.log(this.current);
-    },
-
-    putBomb(){
-        // if(keyDown){
-            if(this.x % this.width === 0 && this.y % this.height === 0){
-                return [this.x, this.y];
-            }else if((this.x % this.width) <= (this.width * this.bombPutThureshold) && (this.y % this.height) <= (this.height * this.bombPutThureshold)){
-                return [this.xCell * this.width, this.yCell * this.height];
-            }else if((this.x % this.width) > (this.width * this.bombPutThureshold) || (this.y % this.height) > (this.height * this.bombPutThureshold)){
-                return [(this.xCell + this.current[0]) * this.width, (this.yCell + this.current[1]) * this.height];
-            }else {
-                throw new Error("fatal error");
-            }
-
-            /*
-            this.prevBombCoordinate = [this.xBomb, this.yBomb];
-            this.xBomb = this.xCell;
-            this.yBomb = this.yCell;
-            // console.log(this.prevBombCoordinate, [this.xBomb, this.yBomb]);
-
-            return [this.xBomb, this.yBomb];
-            // if(this.prevBombCoordinate[0] !== this.xBomb || this.prevBombCoordinate[1] !== this.yBomb){
-            //     return [this.xBomb, this.yBomb];
-            // }
-            */
-        // }else{
-        //     return [null, null];
-        // }
-    },
-
-    die(){
-
-    }
-});
-
-var Bomb = Class.create(Sprite, {
-    initialize(coordinate, size, time){
-        Sprite.call(this, size, size);
-        this.image = this.game.assets["images/bomb.png"];
-        this.flame = 0;
-        this.coordinate = coordinate;
-        this.size = size;
-        this.time = time;
-        this.x = this.coordinate[0] * this.size[0];
-        this.y = this.coordinate[1] * this.size[1];
-        this.cb = null;
-    },
-    startCount(cb) {
-        this.startTime = +new Date();
-        this.cb = cb;
-    },
-    checkCount() {
-        if (this.startTime + this.time > +new Date()) {
-            if (this.cb) {
-                this.cb(this);
-                this.cb = null;
-            }
-        }        
-    },
-});
-
-var BackGround = Class.create(Group, {
-    initialize(map, colMap, size){
-        Group.call(this);
-        this.map = map;
-        this.colMap = colMap;
-        this.size = size;
-        this.image = null;
-    },
-
-    create(){
-        if (!this.image) { throw new Error("image is not specified."); }
-        this.map.forEach((row, y) => {
+        map.forEach((row, y) => {
             row.forEach((cel, x) => {
-                var tile = new Sprite(this.size[0], this.size[1]);
-                tile.image = this.image;
-                tile.frame = cel;
-                tile.x = x * this.size[0];
-                tile.y = y * this.size[1];
-                this.addChild(tile);
+                playScene.addChild(new Tile(x, y, SIZE, this.game.assets["images/map.png"], cel, [false, true]));
             });
         });
+        var you = new Player(1, 1, SIZE, this.game.assets["images/player.png"], false);
+        playScene.addChild(you);
+        this.game.pushScene(playScene);
+        playScene.addEventListener("enterframe", () => {
+            var moveVector = [0, 0];
+            if(this.game.input.up){
+                moveVector = [0, -1];
+            }else if(this.game.input.right){
+                moveVector = [+1, 0];
+            }else if(this.game.input.down){
+                moveVector = [0, +1];
+            }else if(this.game.input.left){
+                moveVector = [-1, 0];
+            }
+            you.updateCoordinate(you.cx + moveVector[0], you.cy + moveVector[1]);
+        });
+    }
+}
+
+class MapData{
+    constructor(matrix){
+        this.map = [];
+        for(var i = 0; i <= matrix[0] - 1; i++){
+            this.map[i] = [];
+            for(var j = 0; j <= matrix[1] - 1; j++){
+                this.map[i].push([]);
+            }
+        }
+        this.matrix = matrix;
+    }
+
+    update(oldCoordinate, newCoordinate, instance){
+        if(!(instance instanceof Collider)){ throw new Error("instance should be a sub class of Collision!"); }
+        if(oldCoordinate[0] !== null && oldCoordinate[1] !== null){
+            const index = this.map[oldCoordinate[0]][oldCoordinate[1]].indexOf(instance);
+            this.map[oldCoordinate[0]][oldCoordinate[1]].splice(index, 1);
+        }
+        this.map[newCoordinate[0]][newCoordinate[1]].push(instance);
+    }
+
+    check(coordinate){
+        if(coordinate[0] >= 0 && coordinate[0] <= this.matrix[0] - 1 && coordinate[1] <= this.matrix[1] - 1 && coordinate[1] >= 0){
+            return !this.map[coordinate[0]][coordinate[1]].some((instance) => instance.collision);
+        }else{
+            return false;
+        }
+    }
+}
+
+const mapData = new MapData(MATRIX);
+
+var Cell = Class.create(Sprite, {
+    initialize(cx, cy, size){
+        Sprite.call(this, size[0], size[1]);
+        this._updateCellCoordinate(cx, cy);
+        this.current = [null, null];
     },
 
-    collisionDetection(x, y, vec){
-        return this.colMap[x + vec[0]][y + vec[1]] === 0;
+    _updateCellCoordinate(cx, cy){
+        this.cx = cx;
+        this.cy = cy;
+        this.x = cx * this.width;
+        this.y = cy * this.height;
+    },
+
+    updateCoordinate(cx, cy, isContinuous){
+        if(isContinuous){
+            var vec = [cx - this.cx, cy - this.cy];
+            if(vec[0] !== 0 && vec[1] !== 0){ throw new Error("Vector must point at next cell when continuous move."); }
+
+            // var hasInput = vec[0] !== 0 || vec[1] !== 0;
+            // if (this.current[0] === null && this.current[1] === null) {
+            //     if (hasInput) {
+            //         this.current = vec;
+            //     } else {
+            //         return;
+            //     }
+            // } else if ((vec[0] === -1 * this.current[0] || vec[1] === -1 * this.current[1]) && hasInput) {
+            //     this.current = vec;
+            // }
+
+            // =*=*=*=*=*= TODO =*=*=*=*=*=
+            // var isMove = this.current[0] !== null && this.current[1] !== null;
+            // if((vec[0] !== 0 || vec[1] !== 0) && !isMove || (isMove && (vec[0] === -1 * this.current[0] || vec[1] === -1 * this.current[1]))){
+            //     this.current = vec;
+            // }else if(isMove){
+            // }else{
+            //     return;
+            // }
+
+            if((vec[0] !== 0 || vec[1] !== 0) && ((this.current[0] === null && this.current[1] === null) || (vec[0] === -1 * this.current[0] || vec[1] === -1 * this.current[1]))){
+                this.current = vec;
+            }
+            console.log(cx, cy, vec, this.current);
+            
+            this.x += this.current[0];
+            this.y += this.current[1];
+
+            if(this.x % this.width === 0 && this.y % this.height === 0){
+                this._updateCellCoordinate(this.x / this.width, this.y / this.height);
+                this.current = [null, null];
+            }
+        }else{
+            this._updateCellCoordinate(cx, cy);
+        }
+    },
+
+    isMoving(){
+        return this.current[0] !== null || this.current[1] !== null;
+    },
+});
+
+var Collider = Class.create(Cell, {
+    initialize(cx, cy, size, collision){
+        Cell.call(this, cx, cy, size);
+        this.collision = collision;
+        mapData.update([null, null], [cx, cy], this);
+    },
+
+    updateCoordinate(cx, cy, isContinuous){       // trueのところにfalseが入れない。
+        if(this.isMoving() || mapData.check([cx, cy])){
+            Cell.prototype.updateCoordinate.call(this, cx, cy, isContinuous);
+            if(!this.isMoving()){
+                mapData.update([this.cx, this.cy], [cx, cy], this);
+            }
+        }
+    },
+});
+
+// [false, true]
+var Tile = Class.create(Collider, {
+    initialize(cx, cy, size, image, frame, frameColliderAssign){
+        Collider.call(this, cx, cy, size, frameColliderAssign[frame]);
+        this.image = image;
+        this.frame = frame;
+        this.frameColliderAssign = frameColliderAssign;
+    },
+});
+
+var Player = Class.create(Collider, {
+    initialize(cx, cy, size, image, collision){
+        Collider.call(this, cx, cy, size, collision);
+        this.image = image;
+        this.frame = 0;
+        this.current = [null, null];
+    },
+
+    updateCoordinate(cx, cy){
+        Collider.prototype.updateCoordinate.call(this, cx, cy, true);
     }
 });
