@@ -2,7 +2,7 @@ enchant();
 
 window.onload = function(){
 	var game = new Core(528, 528);	// game display size
-	game.fps = 30;					// frame per second
+	game.fps = 60;					// frame per second
 	game.preload("images/player.png", "images/map.png", "images/bomb.png");
     var gameFlow = new GameFlow(game);
 	game.onload = function(){
@@ -25,11 +25,12 @@ class GameFlow{
         var playScene = new Scene();
         var bg = this.createBgSprite();
         playScene.addChild(bg);
-        var you = this.createPlaySprite();
+        var you = this.createPlayerSprite();
         you.x = 48;
         you.y = 48;
         playScene.addChild(you);
         this.game.pushScene(playScene);
+        var bombs = [];
         playScene.addEventListener("enterframe", () => {
             if(you.x % you.width === 0 && you.y % you.height === 0){
                 if(this.game.input.up){
@@ -49,7 +50,19 @@ class GameFlow{
             if(bg.collisionDetection(this.xCell / you.width, this.yCell / you.height, this.moveVector)){
                 you.move(this.moveVector);
             }
-            this.createBombSprite(playScene, you.putBomb(this.game.input.space));
+            if (this.game.input.space) {
+                var bomb = this.createBombSprite(you.putBomb());
+                playScene.addChild(bomb);
+                bomb.startCount(() => {
+                    playScene.removeChild(bomb);
+                    var index = bombs.indexOf(bomb);
+                    bombs.splice(index, 1);
+                })
+                bombs.push(bomb);
+            }
+            bombs.forEach((v) => {
+                v.checkCount();
+            })
         });
     }
 
@@ -88,25 +101,48 @@ class GameFlow{
         return sprite;
     }
 
-    createPlaySprite(){
+    createPlayerSprite(){
         var sprite = new Player(48, 48);
         sprite.image = this.game.assets["images/player.png"];
         return sprite;
     }
 
-    createBombSprite(scene, coordinate){
-        if(coordinate[0] !== null && coordinate[1] !== null){
-            var sprite = new Sprite(48, 48);
-            sprite.image = this.game.assets["images/bomb.png"];
-            sprite.flame = 0;
-            sprite.x = coordinate[0];
-            sprite.y = coordinate[1];
-            scene.addChild(sprite);
+    createBombSprite(coordinate){
+        var sprite = new Bomb(coordinate, 48, 3*1000);
+        // if(coordinate[0] !== null && coordinate[1] !== null){
+            // var sprite = new Sprite(48, 48);
+            // sprite.image = this.game.assets["images/bomb.png"];
+            // sprite.flame = 0;
+            // sprite.x = coordinate[0];
+            // sprite.y = coordinate[1];
             // console.log("put");
-            // return sprite;
-        }
+        return sprite;
+        // }
     }
 }
+
+class CollisionDetection{
+    constructor(size){      // size: Number of Cell -> Array[width, height]
+        this.colMap = [];
+        for(var i = 1; i <= size[0]; i++){
+            this.colMap[i] = [];
+            for(var j = 1; j <= size[1]; j++){
+                this.colMap[i].push(0);
+            }
+        }
+    }
+
+    update(){
+
+    }
+
+    check(){
+
+    }
+}
+
+var a = new CollisionDetection([5, 5]);
+console.log(a.colMap);
 
 var Player = Class.create(Sprite, {
     initialize(x, y){
@@ -139,14 +175,16 @@ var Player = Class.create(Sprite, {
         //console.log(this.current);
     },
 
-    putBomb(keyDown){
-        if(keyDown){
+    putBomb(){
+        // if(keyDown){
             if(this.x % this.width === 0 && this.y % this.height === 0){
                 return [this.x, this.y];
             }else if((this.x % this.width) <= (this.width * this.bombPutThureshold) && (this.y % this.height) <= (this.height * this.bombPutThureshold)){
                 return [this.xCell * this.width, this.yCell * this.height];
             }else if((this.x % this.width) > (this.width * this.bombPutThureshold) || (this.y % this.height) > (this.height * this.bombPutThureshold)){
                 return [(this.xCell + this.current[0]) * this.width, (this.yCell + this.current[1]) * this.height];
+            }else {
+                throw new Error("fatal error");
             }
 
             /*
@@ -160,10 +198,40 @@ var Player = Class.create(Sprite, {
             //     return [this.xBomb, this.yBomb];
             // }
             */
-        }else{
-            return [null, null];
-        }
+        // }else{
+        //     return [null, null];
+        // }
+    },
+
+    die(){
+
     }
+});
+
+var Bomb = Class.create(Sprite, {
+    initialize(coordinate, size, time){
+        Sprite.call(this, size, size);
+        this.image = this.game.assets["images/bomb.png"];
+        this.flame = 0;
+        this.coordinate = coordinate;
+        this.size = size;
+        this.time = time;
+        this.x = this.coordinate[0] * this.size[0];
+        this.y = this.coordinate[1] * this.size[1];
+        this.cb = null;
+    },
+    startCount(cb) {
+        this.startTime = +new Date();
+        this.cb = cb;
+    },
+    checkCount() {
+        if (this.startTime + this.time > +new Date()) {
+            if (this.cb) {
+                this.cb(this);
+                this.cb = null;
+            }
+        }        
+    },
 });
 
 var BackGround = Class.create(Group, {
