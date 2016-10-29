@@ -45,7 +45,10 @@ class GameFlow{
         this.game.pushScene(playScene);
         playScene.addEventListener("enterframe", () => {
             var moveVector = [0, 0];
-            if(this.game.input.up){
+            if(this.game.input.space){
+                playScene.addChild(new Bomb(you.cx, you.cy, SIZE, this.game.assets["images/bomb.png"], false, playScene));
+                console.log(you.cx, you.cy, "put a bomb");
+            }else if(this.game.input.up){
                 moveVector = [0, -1];
             }else if(this.game.input.right){
                 moveVector = [+1, 0];
@@ -133,7 +136,7 @@ var Cell = Class.create(Sprite, {
             if((vec[0] !== 0 || vec[1] !== 0) && ((this.current[0] === null && this.current[1] === null) || (vec[0] === -1 * this.current[0] || vec[1] === -1 * this.current[1]))){
                 this.current = vec;
             }
-            console.log(cx, cy, vec, this.current);
+            // console.log(cx, cy, vec, this.current);
             
             this.x += this.current[0];
             this.y += this.current[1];
@@ -189,5 +192,29 @@ var Player = Class.create(Collider, {
 
     updateCoordinate(cx, cy){
         Collider.prototype.updateCoordinate.call(this, cx, cy, true);
+    }
+});
+
+var Bomb = Class.create(Collider, {
+    initialize(cx, cy, size, image, collision, scene){
+        Collider.call(this, cx, cy, size, collision);
+        this.image = image;
+        this.putTime = +new Date();
+        this.frame = 0;
+        this.current = [null, null];
+        this.scene = scene;
+
+        setTimeout(() => {
+            this.explose();
+        }, 2 * 1000);
+    },
+
+    checkTime(){
+
+    },
+
+    explose(fireLength){
+        // removeChild(this);
+        this.scene.removeChild(this);
     }
 });
