@@ -43,22 +43,33 @@ class GameFlow{
         var you = new Player(1, 1, SIZE, this.game.assets["images/player.png"], false);
         playScene.addChild(you);
         this.game.pushScene(playScene);
+        you.onMove((prevCoord, nextCoord) => {
+        	var currentBomb = mapData.exist(prevCoord, "Bomb");
+        	if(currentBomb){
+        		currentBomb.forEach((b) => {
+        			b.collision = true;
+        		});
+        	}
+        });
         playScene.addEventListener("enterframe", () => {
             var moveVector = [0, 0];
+            // move sequence --------------
             if(this.game.input.space){
-            	var bomb = new Bomb(you.cx, you.cy, SIZE, this.game.assets["images/bomb.png"], false, 1, playScene);
-                playScene.addChild(bomb);
-                bomb.finalize(() => {
-                	playScene.removeChild(bomb);
-                });
-                bomb.detonate((flameCx, flameCy) => {
-                	var flame = new Flame(flameCx, flameCy, SIZE, this.game.assets["images/flame.png"]);
-                	playScene.addChild(flame);
-                	flame.finalize(() => {
-                		playScene.removeChild(flame);
-                	});
-                });
-                console.log(you.cx, you.cy, "put a bomb");
+            	if(!(mapData.exist([you.cx, you.cy], "Bomb"))){
+            		var bomb = new Bomb(you.cx, you.cy, SIZE, this.game.assets["images/bomb.png"], false, 1, playScene);
+            		playScene.addChild(bomb);
+	                bomb.finalize(() => {
+	                	playScene.removeChild(bomb);
+	                });
+	                bomb.detonate((flameCx, flameCy) => {
+	                	var flame = new Flame(flameCx, flameCy, SIZE, this.game.assets["images/flame.png"]);
+	                	playScene.addChild(flame);
+	                	flame.finalize(() => {
+	                		playScene.removeChild(flame);
+	                	});
+	                });
+	                console.log(you.cx, you.cy, "put a bomb");
+	            }
             }else if(this.game.input.up){
                 moveVector = [0, -1];
             }else if(this.game.input.right){
@@ -69,6 +80,13 @@ class GameFlow{
                 moveVector = [-1, 0];
             }
             you.updateCoordinate(you.cx + moveVector[0], you.cy + moveVector[1]);
+            // check sequence ------------
+            you.occupied((cx, cy) => {
+            	if(mapData.exist([cx, cy], "Flame")){
+            		// alert("You Died!");
+            		console.log("You Died!");
+            	}
+            });
         });
     }
 }
@@ -86,12 +104,16 @@ class MapData{
     }
 
     update(oldCoordinate, newCoordinate, instance){
-        if(!(instance instanceof Collider)){ throw new Error("instance should be a sub class of Collision!"); }
-        if(oldCoordinate[0] !== null && oldCoordinate[1] !== null){
+    	// if (oldCoordinate[0] === newCoordinate[0] && oldCoordinate[1] === newCoordinate[1]) { return; }
+        // if(!(instance instanceof Collider)){ throw new Error("instance should be a sub class of Collision!"); }
+        console.log(oldCoordinate, newCoordinate, instance.name());
+        if(oldCoordinate !== null && oldCoordinate[0] !== null && oldCoordinate[1] !== null){
             const index = this.map[oldCoordinate[0]][oldCoordinate[1]].indexOf(instance);
             this.map[oldCoordinate[0]][oldCoordinate[1]].splice(index, 1);
         }
-        this.map[newCoordinate[0]][newCoordinate[1]].push(instance);
+        if(newCoordinate !== null && newCoordinate[0] !== null && newCoordinate[1] !== null){
+        	this.map[newCoordinate[0]][newCoordinate[1]].push(instance);
+        }
     }
 
     check(coordinate){
@@ -101,11 +123,30 @@ class MapData{
             return false;
         }
     }
+
+    exist(coordinate, type){
+    	if(coordinate[0] >= 0 && coordinate[0] <= this.matrix[0] - 1 && coordinate[1] <= this.matrix[1] - 1 && coordinate[1] >= 0){
+            var inst = this.map[coordinate[0]][coordinate[1]].filter((instance) => instance.name() === type);
+            if(inst.length !== 0){
+            	return inst;
+            }else{
+            	return null;
+            }
+        }else{
+            return null;
+        }
+    }
+
+    name() {
+    	return this.map.map((column) => column.map((cell) => cell.map((instance) => instance.name())));
+    }
 }
 
 const mapData = new MapData(MATRIX);
 
 var Cell = Class.create(Sprite, {
+	name() { return "Cell"; },
+
     initialize(cx, cy, size){
         Sprite.call(this, size[0], size[1]);
         this._updateCellCoordinate(cx, cy);
@@ -145,7 +186,8 @@ var Cell = Class.create(Sprite, {
             // }
 
             if((vec[0] !== 0 || vec[1] !== 0) && ((this.current[0] === null && this.current[1] === null) || (vec[0] === -1 * this.current[0] || vec[1] === -1 * this.current[1]))){
-                this.current = vec;
+                this.current[0] = vec[0];
+                this.current[1] = vec[1];
             }
             // console.log(cx, cy, vec, this.current);
             
@@ -154,10 +196,18 @@ var Cell = Class.create(Sprite, {
 
             if(this.x % this.width === 0 && this.y % this.height === 0){
                 this._updateCellCoordinate(this.x / this.width, this.y / this.height);
-                this.current = [null, null];
+                const currentPrevious = [];
+                currentPrevious[0] = this.current[0];
+                currentPrevious[1] = this.current[1];
+                this.current[0] = null;
+                this.current[1] = null;
+	        	return [[this.cx - currentPrevious[0], this.cy - currentPrevious[1]], [this.cx, this.cy]];
+            } else {
+	        	return [[this.cx, this.cy], [this.cx + this.current[0], this.cy + this.current[1]]];
             }
         }else{
             this._updateCellCoordinate(cx, cy);
+            return [[cx, cy], [this.cx, this.cy]];
         }
     },
 
@@ -171,6 +221,8 @@ var Cell = Class.create(Sprite, {
 });
 
 var Collider = Class.create(Cell, {
+	name() { return "Collider"; },
+
     initialize(cx, cy, size, collision){
         Cell.call(this, cx, cy, size);
         this.collision = collision;
@@ -178,17 +230,25 @@ var Collider = Class.create(Cell, {
     },
 
     updateCoordinate(cx, cy, isContinuous){       // trueのところにfalseが入れない。
-        if(this.isMoving() || mapData.check([cx, cy])){
-            Cell.prototype.updateCoordinate.call(this, cx, cy, isContinuous);
+        if(this.isMoving() || (mapData.check([cx, cy]) && (cx !== this.cx || cy !== this.cy))){
+            const moveCoords = Cell.prototype.updateCoordinate.call(this, cx, cy, isContinuous);
             if(!this.isMoving()){
-                mapData.update([this.cx, this.cy], [cx, cy], this);
+                mapData.update(moveCoords[0], moveCoords[1], this);
             }
+            return moveCoords;
         }
+        return null;
+    },
+
+    remove(){
+    	mapData.update([this.cx, this.cy], null, this);
     },
 });
 
 // [false, true]
 var Tile = Class.create(Collider, {
+	name() { return "Tile"; },
+
     initialize(cx, cy, size, image, frame, frameColliderAssign){
         Collider.call(this, cx, cy, size, frameColliderAssign[frame]);
         this.image = image;
@@ -198,23 +258,38 @@ var Tile = Class.create(Collider, {
 });
 
 var Player = Class.create(Collider, {
+	name() { return "Player"; },
+
     initialize(cx, cy, size, image, collision){
         Collider.call(this, cx, cy, size, collision);
         this.image = image;
         this.frame = 0;
         this.current = [null, null];
+        this.onMoveEvents = [];
+    },
+
+    onMove(cb) {
+    	this.onMoveEvents.push(cb);
     },
 
     updateCoordinate(cx, cy){ // call in each frame
-        Collider.prototype.updateCoordinate.call(this, cx, cy, true);
+        var moveCoords = Collider.prototype.updateCoordinate.call(this, cx, cy, true);
+        if (moveCoords) {
+        	this.onMoveEvents.forEach((cb) => { cb(moveCoords[0], moveCoords[1]); });
+        }
     },
 
-    die(){
-
-    },
+    occupied(cb) {
+    	cb(this.cx, this.cy);
+    	if (this.isMoving()) {
+    		cb(this.cx + this.current[0], this.cy + this.current[1]);
+    	}
+    }
 });
 
 var Bomb = Class.create(Collider, {
+	name() { return "Bomb"; },
+
     initialize(cx, cy, size, image, collision, fireLength){
         Collider.call(this, cx, cy, size, collision);
         this.image = image;
@@ -235,6 +310,7 @@ var Bomb = Class.create(Collider, {
         setTimeout(() => {
         	this.finalizeCb();
         	this.flame(cb);
+        	this.remove();
         }, 2 * 1000);
     },
 
@@ -251,6 +327,8 @@ var Bomb = Class.create(Collider, {
 });
 
 var Flame = Class.create(Collider, {
+	name() { return "Flame"; },
+
     initialize(cx, cy, size, image){
         Collider.call(this, cx, cy, size, false);
         this.image = image;
@@ -262,6 +340,9 @@ var Flame = Class.create(Collider, {
     },
 
     finalize(cb){
-        setTimeout(cb, 1.2 * 1000);
+        setTimeout(() => {
+        	cb();
+        	this.remove();
+        }, 1.2 * 1000);
     },
 });
