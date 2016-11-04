@@ -6,7 +6,7 @@ const MATRIX = [11, 11];
 window.onload = function(){
     var game = new Core(SIZE[0] * MATRIX[0], SIZE[1] * MATRIX[1]);  // game display size
     game.fps = 60;                  // frame per second
-    game.preload("images/player.png", "images/map.png", "images/bomb.png");
+    game.preload("images/player.png", "images/map.png", "images/bomb.png", "images/flame.png");
     var gameFlow = new GameFlow(game);
     game.onload = function(){
         game.keybind(" ".charCodeAt(0), "space");
@@ -46,7 +46,18 @@ class GameFlow{
         playScene.addEventListener("enterframe", () => {
             var moveVector = [0, 0];
             if(this.game.input.space){
-                playScene.addChild(new Bomb(you.cx, you.cy, SIZE, this.game.assets["images/bomb.png"], false, 1, playScene));
+            	var bomb = new Bomb(you.cx, you.cy, SIZE, this.game.assets["images/bomb.png"], false, 1, playScene);
+                playScene.addChild(bomb);
+                bomb.finalize(() => {
+                	playScene.removeChild(bomb);
+                });
+                bomb.detonate((flameCx, flameCy) => {
+                	var flame = new Flame(flameCx, flameCy, SIZE, this.game.assets["images/flame.png"]);
+                	playScene.addChild(flame);
+                	flame.finalize(() => {
+                		playScene.removeChild(flame);
+                	});
+                });
                 console.log(you.cx, you.cy, "put a bomb");
             }else if(this.game.input.up){
                 moveVector = [0, -1];
@@ -194,7 +205,7 @@ var Player = Class.create(Collider, {
         this.current = [null, null];
     },
 
-    updateCoordinate(cx, cy){
+    updateCoordinate(cx, cy){ // call in each frame
         Collider.prototype.updateCoordinate.call(this, cx, cy, true);
     },
 
@@ -204,46 +215,53 @@ var Player = Class.create(Collider, {
 });
 
 var Bomb = Class.create(Collider, {
-    initialize(cx, cy, size, image, collision, fireLength, scene){
+    initialize(cx, cy, size, image, collision, fireLength){
         Collider.call(this, cx, cy, size, collision);
         this.image = image;
-        this.putTime = +new Date();
         this.frame = 0;
         this.current = [null, null];
-        this.scene = scene;
         this.cx = cx;
         this.cy = cy;
         this.size = size;
+        this.fireLength = fireLength;
+        this.finalizeCb = () => {};
+    },
 
+    finalize(cb){
+    	this.finalizeCb = cb;
+    },
+
+    detonate(cb){
         setTimeout(() => {
-            this.explose(fireLength);
+        	this.finalizeCb();
+        	this.flame(cb);
         }, 2 * 1000);
     },
 
-    explose(fireLength){
-        this.scene.addChild(this.flame(fireLength));
-        setTimeout(() => {
-            this.scene.removeChild(this);
-            
-        }, 1.2 * 1000);
+    flame(cb){
+    	cb(this.cx, this.cy);
+        for(var i = 1; i <= this.fireLength; i++){
+            [[0, 1], [0, -1], [1, 0], [-1, 0]].forEach((dc) => {
+            	if(mapData.check([this.cx + dc[0], this.cy + dc[1]])){
+	                cb(this.cx + dc[0], this.cy + dc[1]);
+            	}
+            });
+        }
+    },
+});
+
+var Flame = Class.create(Collider, {
+    initialize(cx, cy, size, image){
+        Collider.call(this, cx, cy, size, false);
+        this.image = image;
+        this.frame = 0;
+        this.current = [null, null];
+        this.cx = cx;
+        this.cy = cy;
+        this.size = size;
     },
 
-    flame(fireLength){
-        
-        this.frame = 1;
-        for(var i = 1; i <= fireLength; i++){
-            if(Collider.prototype.canFlame.call(this, this.cx + 1, this.cy)){
-                Collider.call(this, this.cx + 1, this.cy, this.size, false);
-            }
-            if(Collider.prototype.canFlame.call(this, this.cx, this.cy + 1)){
-                Collider.call(this, this.cx, this.cy + 1, this.size, false);
-            }
-            if(Collider.prototype.canFlame.call(this, this.cx - 1, this.cy)){
-                Collider.call(this, this.cx - 1, this.cy, this.size, false);
-            }
-            if(Collider.prototype.canFlame.call(this, this.cx, this.cy - 1)){
-                Collider.call(this, this.cx, this.cy - 1, this.size, false);
-            }
-        }
+    finalize(cb){
+        setTimeout(cb, 1.2 * 1000);
     },
 });
