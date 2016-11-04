@@ -154,9 +154,9 @@ var Cell = Class.create(Sprite, {
         return this.current[0] !== null || this.current[1] !== null;
     },
 
-    canFlame(cx, cy){
-        return mapData.check([cx, cy]);
-    },
+    // canFlame(cx, cy){
+    //     return mapData.check([cx, cy]);
+    // },
 });
 
 var Collider = Class.create(Cell, {
@@ -197,6 +197,10 @@ var Player = Class.create(Collider, {
     updateCoordinate(cx, cy){
         Collider.prototype.updateCoordinate.call(this, cx, cy, true);
     },
+
+    die(){
+
+    },
 });
 
 var Bomb = Class.create(Collider, {
@@ -220,6 +224,7 @@ var Bomb = Class.create(Collider, {
         this.scene.addChild(this.flame(fireLength));
         setTimeout(() => {
             this.scene.removeChild(this);
+            
         }, 1.2 * 1000);
     },
 
